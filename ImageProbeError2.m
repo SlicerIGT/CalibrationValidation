@@ -1,4 +1,4 @@
-function[] = ImageProbeError ()
+function[] = ImageProbeError2 ()
 %collected positiones of imaged cross in RAS coordinate system. 
 points = cat(3,[60.4336,11.4083,26.4598;
    59.1987,10.8755,26.8311;
