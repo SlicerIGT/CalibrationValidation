@@ -1,129 +1,7 @@
-%Takes a .txt file containing:
+function[] = determineError (numCollectedDataSets, imagePoints, ProbeToReference, ReferenceToRAS, groundTruth)    
 
-%Number of data sets collected: defined as image points
-%collected at four different orientation with their correlated
-%ProbeToReference transforms
-
-%Image points: fiducial points collected in the RAS coordinate system at
-%the position where the cross appears on the image
-
-%ProbeToReference Transforms: ProbeToReference transforms for each Image 
-%point collected in the RAS coordinate system. 
-
-%ReferenceToRAS Transform
-
-%GroundTruth: The ground truth position of the cross point collected in the
-%RAS coordinate system. 
-
-function[] = ImageProbeError (filename)    
-
-%Open file containing the number of data sets collected and all points, 
-%ProbeToReference transforms,ReferenceToRAS transform and ground truth point 
-file = fopen(filename);
-
-%Read in the number of data sets collected. The total number of points will
-%be four times this number
-numCollectedDataSets(1,1) = fscanf(file, '%f', 1);
-
-%predefine space for data
-imagePoints = zeros(4,4,numCollectedDataSets);
-ProbeToReference = zeros(16,4,numCollectedDataSets);
-ReferenceToRAS = zeros(4,4);
-groundTruth = zeros(1,4);
-
-%Read in points collected
-
-%Each data set collected (every four points) will be in it's own layer of a 
-%3D matrix 
-for p=1:numCollectedDataSets
-    %Number of points in a layer of 3D matrix
-    for i=1:4
-        %x,y and z coorindate of a point collected and saved in RAS
-        for j=1:3
-            imagePoints(i,j,p) = fscanf(file, '%f', 1);
-            %read in the coma delimiter from the file
-            garbage = fscanf(file, '%c', 1);
-        end
-        %add one to the end of the point coordinates so it can be used with
-        %a homogenous matrix
-       imagePoints(i,4,p) = 1;
-
-% %
-% %
-% %
-% %ERROR CHECK: PLOT POINTS IN RAS COORDINATE SYSTEM
-% plot3(imagePoints(i,1,p), imagePoints(i,2,p), imagePoints(i,3,p), 'rx');
-% hold on;
-% %
-% %
-% %
-
-    end
-end
-
-%Each data set collected (four ProbeToReference transforms) will be in it's
-%own layer of a 3D matrix
-for p=1:numCollectedDataSets
-    for k =0:4:12
-        %traverse through each row in the rotation matrix saved in the file
-        for i=1:3
-            %add x, y and z rotation values
-            for j=1:3
-                ProbeToReference(i+k,j,p) = fscanf(file,'%f', 1);
-                garbage = fscanf(file, '%c', 1);
-            end
-        end      
-        %Read in the translation vector
-        for i=1:3
-            ProbeToReference(i+k,4,p) = fscanf(file, '%f',1);
-            garbage = fscanf(file, '%c', 1);
-        end
-        %add the fourth row  
-       ProbeToReference(k+4,:,p) = [0,0,0,1];
-        
-    end
-end
-
-
-%Read in the rotation matrix for the ReferenceToRAS transform
-for p=1:3
-    for j=1:3
-        ReferenceToRAS(p,j) = fscanf(file, '%11f', 1);
-        garbage = fscanf(file, '%c', 1);
-    end
-end
-%Read in the translation matrix for the ReferenceToRAS transform
-for i=1:3
-    ReferenceToRAS(i,4) = fscanf(file, '%11f', 1);
-    garbage = fscanf(file, '%c', 1);
-end
-%Add the fourth row of the transform
-ReferenceToRAS(4,:) = [0,0,0,1];
-
-
-%Read in the groundTruth point.
-for i=1:3
-    groundTruth(1,i) = fscanf(file, '%11f', 1);
-    garbage = fscanf(file, '%c', 1);
-end
-groundTruth(1,4) = 1;
-
-% %
-% %
-% %
-% %ERROR CHECK: PLOT GROUNDTRUTH IN RAS COORDINATE SYSTEM WITH LABELED AXIS.
-% %UNCOMMENT WITH ABOVE ERROR CHECK
-% plot3(groundTruth(1,1), groundTruth(1,2), groundTruth(1,3), 'bx');
-% xlabel('x','FontSize',16);
-% ylabel('y','FontSize',16);
-% zlabel('z','FontSize',16);
-% %
-% %
-% %
-
-
-%Define the LPStoRAS and RAStoLPS transforms. Will be used to move
-%the transforms from the LPS coordinate system(the coordinate system which
+%Define the LPStoRAS and RAStoLPS transforms. These will be used to move
+%the transform from the LPS coordinate system(the coordinate system which
 %their files are saved in) to the RAS coordinate system(where they were
 %collected in slicer)
 LPStoRAS = [-1,0,0,0;0,-1,0,0;0,0,1,0;0,0,0,1];
@@ -139,12 +17,10 @@ end
 
 %Move the ReferenceToRAS transform from the LPS to RAS coordinate system
 ReferenceToRAS = RAStoLPS * inv(ReferenceToRAS) * LPStoRAS;
-
 %Predefine space for the differences between the groundTruth point and the
 %collected fiducial points in the RAS system
 differences = zeros(4,3,5);
 figure;
-
 
 for j=1:numCollectedDataSets
     
@@ -186,7 +62,6 @@ for j=1:numCollectedDataSets
 % %
 % %
 % %
-
         %Move groundTruth point and image cross points from reference
         %coordinate system to probe coordinate system. The same
         %ProbeToReference transform is applied to each point. 
@@ -221,7 +96,6 @@ end
 % %
 % %
 % %
-
 %Calculate the average difference for all points
 avgDiff = [0,0,0]; %error in ImageToProbe transform
 for i=1:numCollectedDataSets
