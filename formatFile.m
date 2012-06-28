@@ -10,12 +10,12 @@
 
 function[] = formatFile(numCollectedDataSets, path)
 
+cd(path);
+
 output = fopen('outputfile.txt','w');
 
 %Write to output file the number of data sets that are collected
-fprintf(output,'%f\n', numCollectedDataSets);
-
-cd(path);
+fprintf(output,'%d\n', numCollectedDataSets);
 
 %Find data folders
 directory = dir('Data*');
@@ -42,6 +42,7 @@ for i=1:numCollectedDataSets
     end
     cd(path);
 end
+cd(path);
 
 %from the same folder as above we now add the ProbeToReference transforms
 %to the file
@@ -67,9 +68,9 @@ end
 %In the Path that is given as input the ReferenceToRAS transform that is
 %used when collecting data should be saved. This transform is the written
 %to the output file
-cd(path);
+
 %find the ReferenceToRAS transform file
-ReferenceToRASTransformFile = dir('ReferenceToRASTr.tfm');
+ReferenceToRASTransformFile = dir('ReferenceToRASTr*.tfm');
 file = ReferenceToRASTransformFile.name;
 fid = fopen(file);
 while ~feof(fid)

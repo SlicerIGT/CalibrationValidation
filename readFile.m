@@ -30,8 +30,6 @@ for p=1:numCollectedDataSets
             %read in the coma delimiter from the file
             garbage = fscanf(file, '%c', 1);
         end
-    end
-end
 % %
 % %
 % %
@@ -41,6 +39,9 @@ end
 % %
 % %
 % %
+    end
+end
+
 %Each data set collected (four ProbeToReference transforms) will be in it's
 %own layer of a 3D matrix
 for p=1:numCollectedDataSets
@@ -84,18 +85,18 @@ for i=1:4
     groundTruth(1,i) = fscanf(file, '%11f', 1);
     garbage = fscanf(file, '%c', 1);
 end
-% %
-% %
-% %
-% %ERROR CHECK: PLOT GROUNDTRUTH IN RAS COORDINATE SYSTEM WITH LABELED AXIS.
-% %UNCOMMENT WITH ABOVE ERROR CHECK
+% % 
+% % 
+% % 
+% % ERROR CHECK: PLOT GROUNDTRUTH IN RAS COORDINATE SYSTEM WITH LABELED AXIS.
+% % UNCOMMENT WITH ABOVE ERROR CHECK
 % plot3(groundTruth(1,1), groundTruth(1,2), groundTruth(1,3), 'bx');
 % xlabel('x','FontSize',16);
 % ylabel('y','FontSize',16);
 % zlabel('z','FontSize',16);
-% %
-% %
-% %
+% % 
+% % 
+% % 
 
 %send generated variables to determineError where they will be analyzed
 determineError(numCollectedDataSets, imagePoints, ProbeToReference, ReferenceToRAS, groundTruth);
