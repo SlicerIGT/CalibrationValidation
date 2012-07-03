@@ -101,36 +101,24 @@ end
 % % 
 % % 
 
-avgPointInReference = [0,0,0];
-avgPointInProbe = [0,0,0];
-avgGroundInProbe = [0,0,0];
-for i=1:numCollectedDataSets
-    for j=1:4
-        avgPointInProbe = avgPointInProbe + imagePoints_InProbe(j,1:3,i);
-        avgGroundInProbe = avgGroundInProbe + groundTruth_InProbe(j,1:3,i);
-        avgPointInReference = avgPointInReference + imagePoints_InReference(j,1:3,i);
-    end
-end
-
-avgPointInProbe = avgPointInProbe/(numCollectedDataSets * 4)
-avgGroundInProbe = avgGroundInProbe/(numCollectedDataSets * 4)
-avgPointInReference = avgPointInReference/(numCollectedDataSets * 4)
-
-biasInProbe = avgPointInProbe - avgGroundInProbe
-biasInReference = avgPointInReference - groundTruth_InReference(1:3)'
-
 %Calculate the average difference for all points
-avgDiff = [0,0,0]; %error in ImageToProbe transform
+totalError = [0,0,0]; %error in ImageToProbe transform
 for i=1:numCollectedDataSets
     for j=1:4
-        avgDiff = avgDiff + differences(j,1:3,i);
+        totalError = totalError + differences(j,1:3,i);
     end
 end
-avgDiff = avgDiff/(numCollectedDataSets * 4);
+totalError = totalError/(numCollectedDataSets * 4);
+standardDev1 = std(differences, 0, 1);
+standardDevFinal = std(standardDev1, 0, 3);
 
 %Display average difference error
-disp('ImageToProbe transform error: ');
-disp(avgDiff);
+disp('Image-to-Reference transform error: ');
+disp(totalError);
+
+disp('Image-to-Reference transform error Standard Deviation: ');
+disp(standardDevFinal);
+
 
 %Label axis on graph
 xlabel('x (Probe Depth)','FontSize',10);
