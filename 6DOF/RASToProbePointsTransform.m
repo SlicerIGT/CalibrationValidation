@@ -1,4 +1,4 @@
-function[] = determineError (numCollectedDataSets, imagePoints, ProbeToReference, ReferenceToRAS, groundTruth)    
+function[] = RASToProbePointsTransform(numCollectedDataSets, imagePoints, ProbeToReference, ReferenceToRAS, groundTruth)    
 
 %Define the LPStoRAS and RAStoLPS transforms. These will be used to move
 %the transform from the LPS coordinate system(the coordinate system which
@@ -8,39 +8,38 @@ LPStoRAS = [-1,0,0,0;0,-1,0,0;0,0,1,0;0,0,0,1];
 RAStoLPS = inv(LPStoRAS);
 
 %Move the ProbeToReference transforms from the LPS to RAS coordinate system
-for p=1:numCollectedDataSets
-    for k = 1:4:13
+    for k = 1:4:16*numCollectedDataSets
         %ProbeToReference = RAStoLPS * inv(ProbeToReference) * LPStoRAS
-        ProbeToReference(k:k+3,:,p) = RAStoLPS * inv(ProbeToReference(k:k+3,:,p)) * LPStoRAS;
+        ProbeToReference(k:k+3,:) = RAStoLPS * inv(ProbeToReference(k:k+3,:)) * LPStoRAS;
     end
-end
 
 %Move the ReferenceToRAS transform from the LPS to RAS coordinate system
 ReferenceToRAS = RAStoLPS * inv(ReferenceToRAS) * LPStoRAS;
-%Predefine space for the differences between the groundTruth point and the
-%collected fiducial points in the RAS system
-differences = zeros(4,3,5);
+
 figure;
 
-for j=1:numCollectedDataSets
-    
+    numPoints = 0;
     %Predefine space for intermediate steps
-    imagePoints_InProbe = zeros(4,4,numCollectedDataSets);
-    imagePoints_InReference = zeros(4,4, numCollectedDataSets);
+    imagePoints_InProbe = zeros(4*numCollectedDataSets,4);
+    imagePoints_InReference = zeros(4*numCollectedDataSets,4);
     groundTruth_InReference = zeros(1,4);
-    groundTruth_InProbe = zeros(4,4, numCollectedDataSets);
+    groundTruth_InProbe = zeros(4*numCollectedDataSets,4);
     
+    
+    %Used to pull out a given ProbeToReference transform from the matrix
+    %that holds all ProbeToReference transforms
     k = 1;
     
 %     Move the groundTruth point from the RAS coordinate system to the
 %     Reference coordinate system. 
     groundTruth_InReference = inv(ReferenceToRAS) * (groundTruth');
     
-    for i=1:4
-        
+    for i=1:4*numCollectedDataSets
+    
+        numPoints = numPoints + 1;
         %Move the image cross points from RAS coordinate 
         %system to reference coordinate system
-        imagePoints_InReference(i,:,j) = inv(ReferenceToRAS) * (imagePoints(i,:,j)');      
+        imagePoints_InReference(i,:) = inv(ReferenceToRAS) * (imagePoints(i,:)');      
         
 % % 
 % % 
@@ -52,24 +51,15 @@ for j=1:numCollectedDataSets
 % plot3(imagePoints_InReference(i,1), imagePoints_InReference(i,2), imagePoints_InReference(i,3), 'rx');
 % hold on;       
 % % 
-% % 
-% % 
-% %ERROR CHECK: PLOT DIFFERENCES BETWEEN THE IMAGE POINTS AND THE GROUNDTRUTH
-% %POINT IN THE REFERENCE COORDINATE SYSTEM. ERROR CHECK BELOW THAT PLOTS
-% %GROUND TRUTH IN REFERENCE SHOULD ALSO BE UNCOMMENTED.
-% differences1(i,:,j) = imagePoints_InReference(i,1:3) - groundTruth_InReference(1:3,1)';
-% plot3(differences1(i,1,j), differences1(i,2,j), differences1(i,3,j), 'rx');
-% hold on;
-% %
-% %
 % %
 
 
         % Move groundTruth point and image cross points from reference
         % coordinate system to probe coordinate system. The same
         % ProbeToReference transform is applied to each point. 
-        groundTruth_InProbe(i,:,j) = inv(ProbeToReference(k:k+3, :, j)) * (groundTruth_InReference);
-        imagePoints_InProbe(i,:,j) =  inv(ProbeToReference(k:k+3, :, j)) * (imagePoints_InReference(i,:, j)');
+        groundTruth_InProbe(i,:) = inv(ProbeToReference(k:k+3,:)) * (groundTruth_InReference);
+        imagePoints_InProbe(i,:) =  inv(ProbeToReference(k:k+3,:)) * (imagePoints_InReference(i,:)');
+        
 % %
 % %
 % %
@@ -80,15 +70,26 @@ for j=1:numCollectedDataSets
 % %
 % %
         k = k + 4;
-        
-        %Find and plot the difference between each imaged cross point and 
-        %ground truth cross points transformed from RAS coordinate system 
-        %to the Probe coordinate system
-        differences(i,:,j) = imagePoints_InProbe(i,1:3,j) - groundTruth_InProbe(i,1:3,j);
-        plot3(differences(i,1,j), differences(i,2,j), differences(i,3,j), 'rx');
+
+    end
+
+    [s, R, T, e] = absoluteOrientationQuaternion(imagePoints_InProbe(:,1:3)', groundTruth_InProbe(:,1:3)');
+    for i = 1:4*numCollectedDataSets
+        imagePoints_InProbe_Transformed(i,:) = s*R*imagePoints_InProbe(i,1:3)' + T;
+        plot3(groundTruth_InProbe(i,1), groundTruth_InProbe(i,2), groundTruth_InProbe(i,3), 'bo');
         hold on;
-     end
-end
+        plot3(imagePoints_InProbe_Transformed(i,1), imagePoints_InProbe_Transformed(i,2), imagePoints_InProbe_Transformed(i,3), 'rx');
+    end
+    
+disp('Scale Matrix: ');
+disp(s)
+disp('Rotation Matrix: ');
+disp(R);
+disp('Translation Vector: ');
+disp(T);
+disp('Error: ');
+disp(e);
+
 
 % % 
 % % 
@@ -100,24 +101,6 @@ end
 % % 
 % % 
 % % 
-
-%Calculate the average difference for all points
-totalError = [0,0,0]; %error in ImageToProbe transform
-for i=1:numCollectedDataSets
-    for j=1:4
-        totalError = totalError + differences(j,1:3,i);
-    end
-end
-totalError = totalError/(numCollectedDataSets * 4);
-standardDev1 = std(differences, 0, 1);
-standardDevFinal = std(standardDev1, 0, 3);
-
-%Display average difference error
-disp('Image-to-Reference transform error: ');
-disp(totalError);
-
-disp('Image-to-Reference transform error Standard Deviation: ');
-disp(standardDevFinal);
 
 
 %Label axis on graph
